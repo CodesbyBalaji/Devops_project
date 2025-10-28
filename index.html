@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>GLB Model Viewer with A-Frame & Voice Control</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      
+      #toggle-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        padding: 10px 15px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+      }
+      
+      #toggle-button:hover {
+        background-color: rgba(255, 255, 255, 1);
+        transform: scale(1.05);
+      }
+      
+      .dark-mode #toggle-button {
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+      }
+      
+      .dark-mode #toggle-button:hover {
+        background-color: rgba(0, 0, 0, 1);
+      }
+      
+      #voice-controls {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        max-width: 250px;
+      }
+      
+      .dark-mode #voice-controls {
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+      }
+      
+      #voice-button {
+        padding: 8px 12px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 10px;
+      }
+      
+      #voice-button.listening {
+        background-color: #f44336;
+        animation: pulse 1.5s infinite;
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+      
+      #voice-status {
+        font-size: 14px;
+        margin-top: 5px;
+      }
+      
+      #voice-commands {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #666;
+      }
+      
+      .dark-mode #voice-commands {
+        color: #ccc;
+      }
+      
+      #view-controls {
+        position: absolute;
+        top: 20px;
+        right: 200px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .view-button {
+        padding: 10px 15px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        white-space: nowrap;
+      }
+      
+      .view-button:hover {
+        background-color: rgba(255, 255, 255, 1);
+        transform: scale(1.05);
+      }
+      
+      .dark-mode .view-button {
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+      }
+      
+      .dark-mode .view-button:hover {
+        background-color: rgba(0, 0, 0, 1);
+      }
+      
+      /* VR Navigation Styles */
+      #vr-navigation {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      #vr-nav-button {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      #vr-nav-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      }
+      
+      #vr-nav-button .nav-icon {
+        font-size: 18px;
+      }
+      
+      .vr-nav-menu {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 200px;
+        transform-origin: bottom right;
+        animation: slideUp 0.3s ease;
+      }
+      
+      .dark-mode .vr-nav-menu {
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+      }
+      
+      @keyframes slideUp {
+        0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      
+      .vr-nav-menu.visible {
+        display: flex;
+      }
+      
+      .vr-location-button {
+        padding: 12px 15px;
+        background: transparent;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .dark-mode .vr-location-button {
+        color: white;
+      }
+      
+      .vr-location-button:hover {
+        background: rgba(106, 17, 203, 0.1);
+        transform: translateX(-5px);
+      }
+      
+      .dark-mode .vr-location-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      .vr-location-button .location-icon {
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+      }
+      
+      /* Mini Map Styles */
+      #mini-map {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        z-index: 999;
+        overflow: hidden;
+        display: none;
+        border: 2px solid white;
+      }
+      
+      .dark-mode #mini-map {
+        background: rgba(0, 0, 0, 0.9);
+        border-color: #333;
+      }
+      
+      #mini-map.visible {
+        display: block;
+        animation: fadeIn 0.5s ease;
+      }
+      
+      @keyframes fadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      
+      .map-location {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #6a11cb;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        transform: translate(-50%, -50%);
+      }
+      
+      .map-location:hover {
+        transform: translate(-50%, -50%) scale(1.5);
+        box-shadow: 0 0 10px #6a11cb;
+      }
+      
+      .map-location.active {
+        background: #4CAF50;
+        box-shadow: 0 0 10px #4CAF50;
+      }
+      
+      .map-location.center { top: 50%; left: 50%; }
+      .map-location.entrance { top: 60%; left: 20%; }
+      .map-location.parking { top: 30%; left: 80%; }
+      
+      .location-tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1001;
+      }
+      
+      .map-location:hover .location-tooltip {
+        opacity: 1;
+      }
+      
+      /* Quiz Mode Styles */
+      #quiz-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+      }
+      
+      #quiz-button {
+        padding: 12px 20px;
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+      }
+      
+      #quiz-button:hover {
+        background-color: #1976D2;
+        transform: scale(1.05);
+      }
+      
+      #quiz-button.quiz-active {
+        background-color: #FF9800;
+        animation: glow 2s infinite;
+      }
+      
+      @keyframes glow {
+        0% { box-shadow: 0 0 10px #FF9800; }
+        50% { box-shadow: 0 0 20px #FF9800; }
+        100% { box-shadow: 0 0 10px #FF9800; }
+      }
+      
+      .quiz-popup {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2000;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        max-width: 400px;
+        text-align: center;
+        display: none;
+        backdrop-filter: blur(10px);
+      }
+      
+      .quiz-popup.visible {
+        display: block;
+        animation: popIn 0.5s ease-out;
+      }
+      
+      @keyframes popIn {
+        0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      
+      .quiz-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      
+      .quiz-content {
+        font-size: 18px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      
+      .quiz-answer {
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+      }
+      
+      .quiz-answer:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+      }
+      
+      .quiz-answer.correct {
+        background-color: #4CAF50;
+        border-color: #45a049;
+      }
+      
+      .quiz-answer.incorrect {
+        background-color: #f44336;
+        border-color: #da190b;
+      }
+      
+      #close-quiz {
+        margin-top: 15px;
+        padding: 8px 20px;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+      
+      #close-quiz:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+      
+      .quiz-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1999;
+        display: none;
+      }
+      
+      .quiz-overlay.visible {
+        display: block;
+      }
+      
+      /* Responsive layout for different screen sizes */
+      @media (max-width: 768px) {
+        #view-controls {
+          top: 80px;
+          right: 20px;
+          flex-direction: row;
+        }
+        
+        #toggle-button {
+          top: 80px;
+          right: 20px;
+        }
+        
+        #voice-controls {
+          max-width: 200px;
+        }
+        
+        #quiz-controls {
+          bottom: 10px;
+        }
+        
+        .quiz-popup {
+          max-width: 300px;
+          padding: 20px;
+        }
+        
+        #vr-navigation {
+          bottom: 10px;
+          right: 10px;
+        }
+        
+        #mini-map {
+          width: 120px;
+          height: 120px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="voice-controls">
+      <button id="voice-button">Start Voice Control</button>
+      <div id="voice-status">Click the button and say a command</div>
+      <div id="voice-commands">
+        <strong>Voice Commands:</strong><br>
+        "forward", "backward", "left", "right",<br>
+        "stop", "up", "down", "reset"
+      </div>
+    </div>
+    
+    <div id="view-controls">
+      <button id="top-view-button" class="view-button">Top View</button>
+      <button id="reset-view-button" class="view-button">Reset View</button>
+    </div>
+    
+    <button id="toggle-button">Switch to Dark Mode</button>
+    
+    <!-- VR Navigation -->
+    <div id="vr-navigation">
+      <button id="vr-nav-button">
+        <span class="nav-icon">🧭</span>
+        <span>Navigate</span>
+      </button>
+      <div class="vr-nav-menu" id="vr-nav-menu">
+        <button class="vr-location-button" data-location="center">
+          <span class="location-icon">📍</span>
+          Campus Center
+        </button>
+        <button class="vr-location-button" data-location="entrance">
+          <span class="location-icon">🚪</span>
+          Main Entrance
+        </button>
+        <button class="vr-location-button" data-location="parking">
+          <span class="location-icon">🚗</span>
+          Car Parking
+        </button>
+      </div>
+    </div>
+    
+    <!-- Mini Map -->
+    <div id="mini-map">
+      <div class="map-location center" data-location="center">
+        <div class="location-tooltip">Campus Center</div>
+      </div>
+      <div class="map-location entrance" data-location="entrance">
+        <div class="location-tooltip">Main Entrance</div>
+      </div>
+      <div class="map-location parking" data-location="parking">
+        <div class="location-tooltip">Car Parking</div>
+      </div>
+    </div>
+    
+    <div id="quiz-controls">
+      <button id="quiz-button">Start Quiz Mode</button>
+    </div>
+    
+    <!-- Quiz Popup -->
+    <div class="quiz-overlay" id="quiz-overlay"></div>
+    <div class="quiz-popup" id="quiz-popup">
+      <div class="quiz-title" id="quiz-title">Campus Quiz</div>
+      <div class="quiz-content" id="quiz-content"></div>
+      <div id="quiz-answers"></div>
+      <button id="close-quiz">Close</button>
+    </div>
+    
+    <a-scene keyboard-shortcuts>
+      <a-assets>
+        <a-asset-item id="athensModel" src="Athens_high_school.glb"></a-asset-item>
+        <audio id="runSound" src="running.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <!-- Camera -->
+      <a-entity id="camera-rig" position="0 1.6 3">
+        <a-camera wasd-controls-enabled="true"></a-camera>
+      </a-entity>
+      
+      <!-- Model -->
+      <a-entity 
+        gltf-model="#athensModel" 
+        position="0 4 0" 
+        scale="1 1 1" 
+        rotation="0 180 0">
+      </a-entity>
+      
+    </a-scene>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const toggleButton = document.getElementById('toggle-button');
+        const voiceButton = document.getElementById('voice-button');
+        const voiceStatus = document.getElementById('voice-status');
+        const topViewButton = document.getElementById('top-view-button');
+        const resetViewButton = document.getElementById('reset-view-button');
+        const quizButton = document.getElementById('quiz-button');
+        const quizPopup = document.getElementById('quiz-popup');
+        const quizOverlay = document.getElementById('quiz-overlay');
+        const quizTitle = document.getElementById('quiz-title');
+        const quizContent = document.getElementById('quiz-content');
+        const quizAnswers = document.getElementById('quiz-answers');
+        const closeQuiz = document.getElementById('close-quiz');
+        const scene = document.querySelector('a-scene');
+        const body = document.body;
+        const cameraRig = document.getElementById('camera-rig');
+        
+        // VR Navigation elements
+        const vrNavButton = document.getElementById('vr-nav-button');
+        const vrNavMenu = document.getElementById('vr-nav-menu');
+        const vrLocationButtons = document.querySelectorAll('.vr-location-button');
+        const miniMap = document.getElementById('mini-map');
+        const mapLocations = document.querySelectorAll('.map-location');
+
+        let isDarkMode = false;
+        let isQuizMode = false;
+        let currentQuestionIndex = 0;
+        let isNavMenuOpen = false;
+        let isMiniMapVisible = false;
+
+        // ======== Navigation Locations ======== //
+        const locations = {
+          center: { x: 0, y: 1.6, z: -20, rotation: { x: 0, y: 0, z: 0 } },
+          entrance: { x: -100, y: 1.6, z: -60, rotation: { x: 0, y: 90, z: 0 } },
+          parking: { x: 150, y: 10, z: 8, rotation: { x: 0, y: -45, z: 0 } },
+        };
+
+        // ======== VR Navigation Functions ======== //
+        function toggleNavMenu() {
+          isNavMenuOpen = !isNavMenuOpen;
+          if (isNavMenuOpen) {
+            vrNavMenu.classList.add('visible');
+            vrNavButton.innerHTML = '<span class="nav-icon">✕</span><span>Close</span>';
+          } else {
+            vrNavMenu.classList.remove('visible');
+            vrNavButton.innerHTML = '<span class="nav-icon">🧭</span><span>Navigate</span>';
+          }
+        }
+
+        function toggleMiniMap() {
+          isMiniMapVisible = !isMiniMapVisible;
+          if (isMiniMapVisible) {
+            miniMap.classList.add('visible');
+          } else {
+            miniMap.classList.remove('visible');
+          }
+        }
+
+        function navigateToLocation(locationId) {
+          const location = locations[locationId];
+          if (location) {
+            cameraRig.setAttribute('position', location);
+            
+            const camera = cameraRig.querySelector('a-camera');
+            if (camera) {
+              camera.setAttribute('rotation', location.rotation);
+            }
+            
+            // Update active button in menu
+            vrLocationButtons.forEach(button => {
+              button.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update active location on mini map
+            mapLocations.forEach(loc => {
+              loc.classList.remove('active');
+              if (loc.getAttribute('data-location') === locationId) {
+                loc.classList.add('active');
+              }
+            });
+            
+            speakText(`Navigating to ${getLocationName(locationId)}`);
+            voiceStatus.textContent = `Navigated to ${getLocationName(locationId)}`;
+            
+            // Close menu after selection
+            toggleNavMenu();
+          }
+        }
+
+        function getLocationName(locationId) {
+          const names = {
+            center: 'Campus Center',
+            entrance: 'Main Entrance',
+            parking: 'Car Parking',
+          };
+          return names[locationId] || locationId;
+        }
+
+        // ======== Text-to-Speech Function ======== //
+        function speakText(text) {
+          if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 0.8;
+            window.speechSynthesis.speak(utterance);
+          } else {
+            console.log('Text-to-speech not supported in this browser');
+          }
+        }
+
+        // ======== Quiz Questions & Fun Facts ======== //
+        const quizData = [
+          {
+            type: 'fact',
+            title: '🏛️ Campus Architecture',
+            content: 'Did you know? The main building was designed in 1928 and features Neo-Classical architecture with ionic columns that are over 30 feet tall!',
+            answers: []
+          },
+          {
+            type: 'quiz',
+            title: '🏀 Sports History',
+            content: 'Which year did our basketball team win the state championship for the first time?',
+            answers: [
+              { text: '1975', correct: false },
+              { text: '1982', correct: true },
+              { text: '1990', correct: false },
+              { text: '2001', correct: false }
+            ]
+          },
+          {
+            type: 'fact',
+            title: '🌳 Historic Oak Tree',
+            content: 'The giant oak tree in the central courtyard is over 150 years old! It was planted when the campus was first established and has witnessed generations of students.',
+            answers: []
+          },
+          {
+            type: 'quiz',
+            title: '🎓 Famous Alumni',
+            content: 'Which Nobel Prize winner graduated from our school in 1995?',
+            answers: [
+              { text: 'Dr. Sarah Chen - Medicine', correct: true },
+              { text: 'Prof. James Wilson - Physics', correct: false },
+              { text: 'Dr. Maria Rodriguez - Chemistry', correct: false },
+              { text: 'Prof. David Kim - Literature', correct: false }
+            ]
+          },
+          {
+            type: 'fact',
+            title: '🔬 Science Wing',
+            content: 'Our science laboratories were recently upgraded with state-of-the-art equipment, including a planetarium projector that can display 5,000 stars!',
+            answers: []
+          },
+          {
+            type: 'quiz',
+            title: '📚 Library Collection',
+            content: 'How many books does our campus library currently hold?',
+            answers: [
+              { text: '25,000', correct: false },
+              { text: '50,000', correct: false },
+              { text: '75,000', correct: true },
+              { text: '100,000', correct: false }
+            ]
+          },
+          {
+            type: 'fact',
+            title: '🎭 Performing Arts',
+            content: 'The auditorium has hosted over 500 theatrical productions since 1930, including 15 world premieres of student-written plays!',
+            answers: []
+          },
+          {
+            type: 'quiz',
+            title: '🏗️ Campus Expansion',
+            content: 'When was the new student center building completed?',
+            answers: [
+              { text: '2015', correct: false },
+              { text: '2018', correct: true },
+              { text: '2020', correct: false },
+              { text: '2022', correct: false }
+            ]
+          }
+        ];
+
+        // ======== Quiz Functions ======== //
+        function startQuizMode() {
+          isQuizMode = true;
+          quizButton.textContent = 'Quiz Mode Active';
+          quizButton.classList.add('quiz-active');
+          showRandomQuiz();
+          
+          // Auto-show next quiz every 30 seconds
+          setInterval(() => {
+            if (isQuizMode && !quizPopup.classList.contains('visible')) {
+              showRandomQuiz();
+            }
+          }, 30000);
+        }
+
+        function stopQuizMode() {
+          isQuizMode = false;
+          quizButton.textContent = 'Start Quiz Mode';
+          quizButton.classList.remove('quiz-active');
+          hideQuizPopup();
+        }
+
+        function showRandomQuiz() {
+          if (!isQuizMode) return;
+          
+          const randomIndex = Math.floor(Math.random() * quizData.length);
+          currentQuestionIndex = randomIndex;
+          const item = quizData[randomIndex];
+          
+          quizTitle.textContent = item.title;
+          quizContent.textContent = item.content;
+          quizAnswers.innerHTML = '';
+          
+          if (item.type === 'quiz') {
+            item.answers.forEach((answer, index) => {
+              const answerDiv = document.createElement('div');
+              answerDiv.className = 'quiz-answer';
+              answerDiv.textContent = answer.text;
+              answerDiv.onclick = () => checkAnswer(answer.correct, answerDiv);
+              quizAnswers.appendChild(answerDiv);
+            });
+          } else {
+            // For facts, just show a continue button
+            const continueBtn = document.createElement('div');
+            continueBtn.className = 'quiz-answer';
+            continueBtn.textContent = 'Continue Exploring';
+            continueBtn.onclick = hideQuizPopup;
+            quizAnswers.appendChild(continueBtn);
+          }
+          
+          showQuizPopup();
+        }
+
+        function checkAnswer(isCorrect, element) {
+          if (isCorrect) {
+            element.classList.add('correct');
+            quizContent.textContent = '🎉 Correct! Well done!';
+            speakText("Correct! Well done!");
+          } else {
+            element.classList.add('incorrect');
+            quizContent.textContent = '❌ Not quite right. Try exploring more!';
+            speakText("Not quite right. Try exploring more!");
+          }
+          
+          // Disable all answers after selection
+          const allAnswers = quizAnswers.querySelectorAll('.quiz-answer');
+          allAnswers.forEach(ans => {
+            ans.style.pointerEvents = 'none';
+            if (ans !== element) {
+              ans.style.opacity = '0.6';
+            }
+          });
+        }
+
+        function showQuizPopup() {
+          quizPopup.classList.add('visible');
+          quizOverlay.classList.add('visible');
+        }
+
+        function hideQuizPopup() {
+          quizPopup.classList.remove('visible');
+          quizOverlay.classList.remove('visible');
+        }
+
+        // ======== Voice Recognition Setup ======== //
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+          recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.lang = 'en-US';
+
+          recognition.onstart = function() {
+            isListening = true;
+            voiceButton.textContent = 'Stop Listening';
+            voiceButton.classList.add('listening');
+            voiceStatus.textContent = 'Listening... Say a command';
+            speakText("Voice control activated. Say a command.");
+          };
+
+          recognition.onend = function() {
+            isListening = false;
+            voiceButton.textContent = 'Start Voice Control';
+            voiceButton.classList.remove('listening');
+            voiceStatus.textContent = 'Click the button and say a command';
+          };
+
+          recognition.onresult = function(event) {
+            const last = event.results.length - 1;
+            const command = event.results[last][0].transcript.toLowerCase().trim();
+
+            voiceStatus.textContent = `Heard: "${command}"`;
+            processVoiceCommand(command);
+          };
+
+          recognition.onerror = function(event) {
+            console.error('Speech recognition error', event.error);
+            voiceStatus.textContent = `Error: ${event.error}`;
+          };
+        } else {
+          voiceStatus.textContent = 'Speech recognition not supported in this browser';
+          voiceButton.disabled = true;
+        }
+
+        // ======== Running Sound on Movement ======== //
+        const runSound = document.getElementById('runSound');
+
+        // Ensure sound is ready to play
+        runSound.volume = 1.0;
+        runSound.loop = true;
+
+        // When an arrow key is pressed, play sound
+        window.addEventListener('keydown', (event) => {
+          if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+            if (runSound.paused) {
+              runSound.play().catch(err => console.log("Playback error:", err));
+            }
+          }
+        });
+
+        // When arrow key is released, pause sound
+        window.addEventListener('keyup', (event) => {
+          if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+            runSound.pause();
+          }
+        });
+
+        // ======== Voice Command Processing ======== //
+        function processVoiceCommand(command) {
+          const moveSpeed = 3;
+          const currentPosition = cameraRig.getAttribute('position');
+
+          function moveCamera(newPos) {
+            cameraRig.setAttribute('position', newPos);
+          }
+
+          if (command.includes('forward')) {
+            moveCamera({ x: currentPosition.x, y: currentPosition.y, z: currentPosition.z - moveSpeed });
+            speakText("Moving forward");
+          } else if (command.includes('backward') || command.includes('back')) {
+            moveCamera({ x: currentPosition.x, y: currentPosition.y, z: currentPosition.z + moveSpeed });
+            speakText("Moving backward");
+          } else if (command.includes('left')) {
+            moveCamera({ x: currentPosition.x - moveSpeed, y: currentPosition.y, z: currentPosition.z });
+            speakText("Moving left");
+          } else if (command.includes('right')) {
+            moveCamera({ x: currentPosition.x + moveSpeed, y: currentPosition.y, z: currentPosition.z });
+            speakText("Moving right");
+          } else if (command.includes('up')) {
+            moveCamera({ x: currentPosition.x, y: currentPosition.y + moveSpeed, z: currentPosition.z });
+            speakText("Moving up");
+          } else if (command.includes('down')) {
+            moveCamera({ x: currentPosition.x, y: currentPosition.y - moveSpeed, z: currentPosition.z });
+            speakText("Moving down");
+          } else if (command.includes('stop')) {
+            speakText("Movement stopped");
+            voiceStatus.textContent = 'Movement stopped';
+          } else if (command.includes('reset')) {
+            resetCameraView();
+            speakText("Position reset");
+            voiceStatus.textContent = 'Position reset';
+          } else if (command.includes('quiz')) {
+            if (!isQuizMode) {
+              startQuizMode();
+              speakText("Quiz mode activated!");
+              voiceStatus.textContent = 'Quiz mode activated!';
+            } else {
+              stopQuizMode();
+              speakText("Quiz mode deactivated!");
+              voiceStatus.textContent = 'Quiz mode deactivated!';
+            }
+          } else if (command.includes('navigation') || command.includes('navigate')) {
+            toggleNavMenu();
+          } else if (command.includes('map') || command.includes('mini map')) {
+            toggleMiniMap();
+          } else if (command.includes('center')) {
+            navigateToLocation('center');
+          } else if (command.includes('entrance')) {
+            navigateToLocation('entrance');
+          } else if (command.includes('parking')) {
+            navigateToLocation('parking');
+          } else {
+            speakText("Unknown command");
+            voiceStatus.textContent = `Unknown command: "${command}"`;
+          }
+        }
+
+        // ======== View Control Functions ======== //
+        function setTopDownView() {
+          // Position the camera high above the model looking straight down
+          cameraRig.setAttribute('position', { x: 0, y: 25, z: 0 });
+          
+          // Rotate the camera to look straight down (90 degrees on X-axis)
+          const camera = cameraRig.querySelector('a-camera');
+          if (camera) {
+            camera.setAttribute('rotation', { x: -90, y: 0, z: 0 });
+          }
+          
+          speakText("Switched to top-down view");
+          voiceStatus.textContent = 'Switched to top-down view';
+        }
+
+        function resetCameraView() {
+          // Reset to the default position and rotation
+          cameraRig.setAttribute('position', { x: 0, y: 1.6, z: 3 });
+          
+          const camera = cameraRig.querySelector('a-camera');
+          if (camera) {
+            camera.setAttribute('rotation', { x: 0, y: 0, z: 0 });
+          }
+          
+          speakText("View reset to default");
+          voiceStatus.textContent = 'View reset to default';
+        }
+
+        // ======== Event Listeners ======== //
+        voiceButton.addEventListener('click', function() {
+          if (!recognition) return;
+
+          if (isListening) {
+            recognition.stop();
+          } else {
+            try {
+              recognition.start();
+            } catch (error) {
+              console.error('Speech recognition start error:', error);
+            }
+          }
+        });
+
+        topViewButton.addEventListener('click', setTopDownView);
+        resetViewButton.addEventListener('click', resetCameraView);
+
+        quizButton.addEventListener('click', function() {
+          if (!isQuizMode) {
+            startQuizMode();
+          } else {
+            stopQuizMode();
+          }
+        });
+
+        closeQuiz.addEventListener('click', hideQuizPopup);
+        quizOverlay.addEventListener('click', hideQuizPopup);
+
+        // VR Navigation event listeners
+        vrNavButton.addEventListener('click', toggleNavMenu);
+        
+        vrLocationButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const locationId = this.getAttribute('data-location');
+            navigateToLocation(locationId);
+          });
+        });
+        
+        mapLocations.forEach(location => {
+          location.addEventListener('click', function() {
+            const locationId = this.getAttribute('data-location');
+            navigateToLocation(locationId);
+          });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+          if (!vrNavButton.contains(event.target) && !vrNavMenu.contains(event.target)) {
+            vrNavMenu.classList.remove('visible');
+            isNavMenuOpen = false;
+            vrNavButton.innerHTML = '<span class="nav-icon">🧭</span><span>Navigate</span>';
+          }
+        });
+
+        // ======== Dark/Light Mode ======== //
+        toggleButton.addEventListener('click', function() {
+          isDarkMode = !isDarkMode;
+          if (isDarkMode) {
+            scene.setAttribute('background', 'color: #222222');
+            body.classList.add('dark-mode');
+            toggleButton.textContent = 'Switch to Light Mode';
+            speakText("Dark mode activated");
+          } else {
+            scene.setAttribute('background', 'color: #ECECEC');
+            body.classList.remove('dark-mode');
+            toggleButton.textContent = 'Switch to Dark Mode';
+            speakText("Light mode activated");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -97,11 +97,18 @@ pipeline {
                 script {
                     echo "Deploying to Azure App Service: ${WEB_APP_NAME}"
                     sh """
-                        az login --service-principal \
-                            -u \${AZURE_CREDENTIALS_USR} \
-                            -p \${AZURE_CREDENTIALS_PSW} \
-                            --tenant \${AZURE_CREDENTIALS_TENANT}
+                        # Parse Azure Service Principal JSON
+                        CLIENT_ID=\$(echo '${AZURE_CREDENTIALS}' | python3 -c "import sys, json; print(json.load(sys.stdin)['clientId'])")
+                        CLIENT_SECRET=\$(echo '${AZURE_CREDENTIALS}' | python3 -c "import sys, json; print(json.load(sys.stdin)['clientSecret'])")
+                        TENANT_ID=\$(echo '${AZURE_CREDENTIALS}' | python3 -c "import sys, json; print(json.load(sys.stdin)['tenantId'])")
                         
+                        # Login to Azure
+                        az login --service-principal \
+                            -u "\${CLIENT_ID}" \
+                            -p "\${CLIENT_SECRET}" \
+                            --tenant "\${TENANT_ID}"
+                        
+                        # Update Web App container configuration
                         az webapp config container set \
                             --name ${WEB_APP_NAME} \
                             --resource-group ${RESOURCE_GROUP} \
@@ -110,10 +117,12 @@ pipeline {
                             --docker-registry-server-user ${ACR_USERNAME} \
                             --docker-registry-server-password ${ACR_PASSWORD}
                         
+                        # Restart Web App
                         az webapp restart \
                             --name ${WEB_APP_NAME} \
                             --resource-group ${RESOURCE_GROUP}
                         
+                        # Logout
                         az logout
                     """
                 }

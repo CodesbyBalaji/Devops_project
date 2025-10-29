@@ -121,9 +121,6 @@ pipeline {
                         az webapp restart \
                             --name ${WEB_APP_NAME} \
                             --resource-group ${RESOURCE_GROUP}
-                        
-                        # Logout
-                        az logout
                     """
                 }
             }
@@ -144,6 +141,9 @@ pipeline {
                         echo "Checking https://\${APP_URL}"
                         curl -f -k https://\${APP_URL} || exit 1
                         echo "Application is healthy!"
+                        
+                        # Logout from Azure after health check
+                        az logout
                     """
                 }
             }

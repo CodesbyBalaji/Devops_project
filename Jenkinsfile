@@ -131,16 +131,44 @@ pipeline {
                 script {
                     echo 'Performing health check...'
                     sh """
-                        sleep 30
+                        # Wait for container to start (Azure Web App needs time to pull image and start container)
+                        echo "Waiting 60 seconds for container to initialize..."
+                        sleep 60
                         
                         APP_URL=\$(az webapp show \
                             --name ${WEB_APP_NAME} \
                             --resource-group ${RESOURCE_GROUP} \
                             --query defaultHostName -o tsv)
                         
-                        echo "Checking https://\${APP_URL}"
-                        curl -f -k https://\${APP_URL} || exit 1
-                        echo "Application is healthy!"
+                        echo "Starting health check for https://\${APP_URL}"
+                        
+                        # Retry health check up to 5 times with 10-second intervals
+                        MAX_RETRIES=5
+                        RETRY_COUNT=0
+                        SUCCESS=false
+                        
+                        while [ \$RETRY_COUNT -lt \$MAX_RETRIES ]; do
+                            echo "Health check attempt \$((RETRY_COUNT + 1)) of \$MAX_RETRIES..."
+                            
+                            # Use -f to fail on HTTP errors, -s for silent, -I for headers only
+                            if curl -f -s -I -k https://\${APP_URL} | grep -q "HTTP.*200"; then
+                                echo "✅ Health check passed! Application is responding with HTTP 200"
+                                SUCCESS=true
+                                break
+                            else
+                                echo "⏳ Application not ready yet, waiting 10 seconds..."
+                                sleep 10
+                                RETRY_COUNT=\$((RETRY_COUNT + 1))
+                            fi
+                        done
+                        
+                        if [ "\$SUCCESS" = "false" ]; then
+                            echo "❌ Health check failed after \$MAX_RETRIES attempts"
+                            az logout
+                            exit 1
+                        fi
+                        
+                        echo "🎉 Application is healthy and serving traffic!"
                         
                         # Logout from Azure after health check
                         az logout

@@ -43,6 +43,45 @@ variable "app_service_sku" {
   default     = "B1"
 }
 
+# Jenkins Variables
+variable "jenkins_vm_size" {
+  description = "Jenkins VM size"
+  type        = string
+  default     = "Standard_B2s"
+}
+
+variable "jenkins_admin_username" {
+  description = "Jenkins VM admin username"
+  type        = string
+  default     = "azureuser"
+}
+
+variable "jenkins_ssh_public_key" {
+  description = "SSH public key for Jenkins VM"
+  type        = string
+}
+
+variable "subscription_id" {
+  description = "Azure Subscription ID"
+  type        = string
+}
+
+variable "tenant_id" {
+  description = "Azure Tenant ID"
+  type        = string
+}
+
+variable "client_id" {
+  description = "Service Principal Client ID"
+  type        = string
+}
+
+variable "client_secret" {
+  description = "Service Principal Client Secret"
+  type        = string
+  sensitive   = true
+}
+
 resource "azurerm_resource_group" "main" {
   name     = "rg-${var.project_name}-${var.environment}"
   location = var.location

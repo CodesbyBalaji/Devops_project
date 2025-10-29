@@ -1,0 +1,77 @@
+﻿# Terraform files# Terraform
+
+.terraform/.terraform/
+
+.terraform.lock.hcl*.tfstate
+
+*.tfstate*.tfstate.*
+
+*.tfstate.*.terraform.lock.hcl
+
+terraform.tfvars.backuptfplan
+
+.terraformrc
+
+terraform.rc# Azure credentials
+
+.azure-credentials.txt
+
+# Azure credentials (NEVER commit these).azure-outputs.json
+
+.azure-credentials.txt*.pem
+
+.azure-outputs.json*.key
+
+
+
+# Local environment# IDE
+
+.env.vscode/
+
+.env.local.idea/
+
+*.swp
+
+# IDE files*.swo
+
+.vscode/
+
+.idea/# OS
+
+*.swp.DS_Store
+
+*.swoThumbs.db
+
+*~
+
+# Logs
+
+# OS files*.log
+
+.DS_Storenpm-debug.log*
+
+Thumbs.db
+
+# Environment
+
+# Logs.env
+
+*.log.env.local
+
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+.dockerignore
+
+# Build artifacts
+dist/
+build/
+*.zip
+*.tar.gz
+
+# Backup files
+*.bak
+*.backup

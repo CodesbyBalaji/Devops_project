@@ -1,77 +1,53 @@
-﻿# Terraform files# Terraform
+﻿# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars.backup
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
-.terraform/.terraform/
+# Sensitive files
+secrets.tfvars
+terraform.tfvars.json
 
-.terraform.lock.hcl*.tfstate
-
-*.tfstate*.tfstate.*
-
-*.tfstate.*.terraform.lock.hcl
-
-terraform.tfvars.backuptfplan
-
-.terraformrc
-
-terraform.rc# Azure credentials
-
-.azure-credentials.txt
-
-# Azure credentials (NEVER commit these).azure-outputs.json
-
-.azure-credentials.txt*.pem
-
-.azure-outputs.json*.key
-
-
-
-# Local environment# IDE
-
-.env.vscode/
-
-.env.local.idea/
-
-*.swp
-
-# IDE files*.swo
-
+# IDE
 .vscode/
-
-.idea/# OS
-
-*.swp.DS_Store
-
-*.swoThumbs.db
-
+.idea/
+*.swp
+*.swo
 *~
 
 # Logs
-
-# OS files*.log
-
-.DS_Storenpm-debug.log*
-
-Thumbs.db
-
-# Environment
-
-# Logs.env
-
-*.log.env.local
-
-logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Docker
-.dockerignore
+# OS files
+Thumbs.db
+.DS_Store
 
-# Build artifacts
-dist/
-build/
-*.zip
-*.tar.gz
+# Temporary files
+*.tmp
+*.temp
+temp/
 
-# Backup files
-*.bak
-*.backup
+# Azure credentials
+.azure-credentials.txt
+.azure-outputs.json
+*.pem
+*.key
+
+# Azure
+.azure/
+
+# Jenkins
+.jenkins/
+
+# Environment
+.env
+.env.local
